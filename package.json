@@ -1,0 +1,28 @@
+{
+  "name": "warix-rxjs",
+  "version": "1.0.0",
+  "description": "Warix rxjs helpers and extensions",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/warix-code/warix-rxjs.git"
+  },
+  "keywords": [
+    "Warix",
+    "RxJs"
+  ],
+  "author": "Rogelio Figueroa",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/warix-code/warix-rxjs/issues"
+  },
+  "homepage": "https://github.com/warix-code/warix-rxjs#readme",
+  "dependencies": {
+    "@types/lodash": "^4.14.149",
+    "lodash": "^4.17.15",
+    "rxjs": "^6.5.4"
+  }
+}
