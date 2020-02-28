@@ -37,5 +37,7 @@ export interface IWarixResizeObserverEntry {
     readonly hasLocationChanges: boolean;
     readonly hasSizeChanges: boolean;
     readonly hasChanges: boolean;
+    readonly requiresHorizontalScrollbar: boolean;
+    readonly requiresVerticalScrollbar: boolean;
     readonly element: HTMLElement;
 }

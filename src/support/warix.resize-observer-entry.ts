@@ -57,6 +57,14 @@ export class WarixResizeObserverEntry implements IWarixResizeObserverEntry {
         return this.hasLocationChanges || this.hasSizeChanges;
     }
 
+    public get requiresHorizontalScrollbar() {
+        return this.element.scrollWidth > this.element.clientWidth;
+    }
+
+    public get requiresVerticalScrollbar() {
+        return this.element.scrollHeight > this.element.clientHeight;
+    }
+
     public get element() {
         return this.domElement;
     }
