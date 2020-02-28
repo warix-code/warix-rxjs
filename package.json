@@ -1,6 +1,6 @@
 {
   "name": "warix-rxjs",
-  "version": "1.0.0",
+  "version": "1.0.5",
   "description": "Warix rxjs helpers and extensions",
   "main": "index.js",
   "scripts": {
@@ -23,6 +23,6 @@
   "dependencies": {
     "@types/lodash": "^4.14.149",
     "lodash": "^4.17.15",
-    "rxjs": "^6.5.4"
+    "rxjs": "~6.4.0"
   }
 }

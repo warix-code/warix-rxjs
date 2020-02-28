@@ -2,3 +2,5 @@ node_modules
 dist
 .vscode
 .node-version
+publish.ps1
+yarn.lock

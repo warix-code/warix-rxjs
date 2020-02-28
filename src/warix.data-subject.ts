@@ -1,17 +1,17 @@
 import { BehaviorSubject, Observable, combineLatest } from 'rxjs';
 import { pluck, distinctUntilChanged, map } from 'rxjs/operators';
+import { cloneDeep } from 'lodash';
 
 const empty = () => Object.create(null);
 
 export class WarixDataSubject<T extends {}> extends BehaviorSubject<T> {
-    public key<M extends keyof T>(key: M): Observable<T[M]>;
-    public key<M extends keyof T>(key: M, value: T[M]): this;
-    public key() {
-        if (arguments.length === 2) {
-            this.next(Object.assign(empty(), this.value, { [arguments[0]]: arguments[1] }));
-            return this;
-        }
-        return this.pipe(pluck(arguments[0]), distinctUntilChanged());
+    public get<M extends keyof T>(key: M) {
+        return this.pipe(pluck(key), distinctUntilChanged());
+    }
+
+    public set<M extends keyof T>(key: M, value: T[M]) {
+        this.next(Object.assign(empty(), this.value, { [key]: value }));
+        return this;
     }
 
     public compound<A extends keyof T, B extends keyof T>(a: A, b: B): Observable<[T[A], T[B]]>;
@@ -19,7 +19,7 @@ export class WarixDataSubject<T extends {}> extends BehaviorSubject<T> {
     public compound<A extends keyof T, B extends keyof T, C extends keyof T, D extends keyof T>(a: A, b: B, c: C, d: D): Observable<[T[A], T[B], T[C], T[D]]>;
     public compound<A extends keyof T, B extends keyof T, C extends keyof T, D extends keyof T, E extends keyof T>(a: A, b: B, c: C, d: D, e: E): Observable<[T[A], T[B], T[C], T[D], T[E]]>;
     public compound() {
-        return combineLatest(Array.from(arguments).map(x => this.key(x)));
+        return combineLatest(Array.from(arguments).map(x => this.get(x)));
     }
 
     public map<A extends keyof T, M>(a: A, mapping: (value: T[A]) => M): Observable<M>;
@@ -31,9 +31,9 @@ export class WarixDataSubject<T extends {}> extends BehaviorSubject<T> {
         const keys = Array.from(arguments);
         const mapping = keys.pop();
         if (keys.length === 1) {
-            return this.key(keys[0]).pipe(map(x => mapping(x)));
+            return this.get(keys[0]).pipe(map(x => mapping(x)));
         }
-        return combineLatest(keys.map(x => this.key(x))).pipe(map(x => mapping(x)));
+        return combineLatest(keys.map(x => this.get(x))).pipe(map(x => mapping(x)));
     }
 
     public peekKey<M extends keyof T>(key: M) {
@@ -42,6 +42,13 @@ export class WarixDataSubject<T extends {}> extends BehaviorSubject<T> {
 
     public patch(value: Partial<T>) {
         this.next(Object.assign(empty(), this.value, value));
+        return this;
+    }
+
+    public deleteKey<M extends keyof T>(key: M) {
+        const nxt = cloneDeep(this.getValue());
+        delete nxt[key];
+        this.next(nxt);
         return this;
     }
 }

@@ -26,7 +26,7 @@ export class WarixArraySubject<T> extends BehaviorSubject<T[]> {
     }
 
     public get first$() {
-        return this.key(0);
+        return this.getAt(0);
     }
 
     public get last() {
@@ -34,7 +34,7 @@ export class WarixArraySubject<T> extends BehaviorSubject<T[]> {
     }
 
     public get last$() {
-        return this.key(this.length - 1);
+        return this.getAt(this.length - 1);
     }
 
     public get actions$() {
@@ -61,13 +61,12 @@ export class WarixArraySubject<T> extends BehaviorSubject<T[]> {
         return this;
     }
 
-    public key(index: number): Observable<T>;
-    public key(index: number, value: T): this;
-    public key() {
-        if (arguments.length === 2) {
-            return this.processArrayResult(ArrayOps.arraySetAt(this.value, arguments[0], arguments[1]));
-        }
+    public getAt(index: number) {
         return this.pipe(map(x => x[arguments[0]]), distinctUntilChanged());
+    }
+
+    public setAt(index: number, value: T) {
+        return this.processArrayResult(ArrayOps.arraySetAt(this.value, index, value));
     }
 
     public peekKey(index: number) {
