@@ -57,7 +57,7 @@ export class WarixGridSubject<T> extends BehaviorSubject<T[]> {
      */
     constructor(columns: number, rows: number, public activator: WarixGridSubjectActivator<T>) {
         super([]);
-
+        this.state$ = new WarixDataSubject({ colCount: columns, rowCount: rows });
         this.fill(columns, rows);
     }
 
@@ -66,6 +66,17 @@ export class WarixGridSubject<T> extends BehaviorSubject<T[]> {
             return (y * colCount) + x;
         }
         return -1;
+    }
+
+    private indexToGridCoords(index: number, colCount: number, rowCount: number) {
+        if (index >= 0 && index < colCount * rowCount) {
+            const y = Math.floor(index / colCount);
+            return {
+                x: index - (y * colCount),
+                y
+            };
+        }
+        return { x: -1, y: -1 };
     }
 
     private valueForNewCell(x: number, y: number, i: number) {
@@ -106,7 +117,7 @@ export class WarixGridSubject<T> extends BehaviorSubject<T[]> {
         if (this.afterOperationBacker) {
             const nextMapped: T[] = [];
             for (let i = 0; i < next.length; i++) {
-                const coords = this.indexToCoords(i);
+                const coords = this.indexToGridCoords(i, this.columns, this.rows);
                 nextMapped.push(this.afterOperationBacker(coords.x, coords.y, i, next[i]));
             }
             this.next(nextMapped);
@@ -246,7 +257,7 @@ export class WarixGridSubject<T> extends BehaviorSubject<T[]> {
         if (arguments.length === 1) {
             return this.getValue()[ arguments[0] ];
         } else if (arguments.length === 2) {
-            return this.getValue[ this.coordsToIndex(arguments[0], arguments[1]) ];
+            return this.getValue()[ this.coordsToIndex(arguments[0], arguments[1]) ];
         }
         return undefined;
     }
