@@ -23,6 +23,11 @@ export interface IWarixArrayGrouping<T> {
     items: T[] | IWarixArrayGrouping<T>[];
 }
 
+export interface IWarixArraySortDefinition {
+    property: string;
+    descending: boolean;
+}
+
 const fnNoAction = <T>(baseArray: T) => {
     return {
         oldValue: baseArray,
@@ -161,6 +166,25 @@ export const arraySort = <T>(baseArray: T[], compareFn?: (a: T, b: T) => number)
     };
 };
 
+export const arrayMultiSort = <T>(baseArray: T[], sorting: IWarixArraySortDefinition[]) => {
+    const fnApplySort = (a: T, b: T, c: IWarixArraySortDefinition, n: IWarixArraySortDefinition[]) => {
+        const ax = a[ c.property ];
+        const bx = b[ c.property ];
+        const mx = c.descending ? -1 : 1;
+        return ax < bx ? (-1 * mx) : bx < ax ? (1 * mx) : (n.length > 0 ? fnApplySort(a, b, n[0], n.slice(1)) : 0);
+    };
+    const mapped = baseArray.map((item, oldIndex) => ({ oldIndex, newIndex: oldIndex, item })).sort((a, b) => {
+        return fnApplySort(a.item, b.item, sorting[0], sorting.slice(1));
+    });
+    return {
+        oldValue: baseArray,
+        newValue: mapped.map(x => x.item),
+        addedItems: [],
+        removedItems: [],
+        shiftedItems: mapped.filter(x => x.newIndex !== x.oldIndex)
+    };
+};
+
 export const arraySet = <T>(baseArray: T[], newValue: T[]): IWarixArrayOperationChange<T> => {
     return {
         oldValue: baseArray,
@@ -198,6 +222,11 @@ export const arrayShuffle = <T>(baseArray: T[]): IWarixArrayOperationChange<T> =
 };
 
 export const arrayDistinct = <T>(baseArray: T[]) => arrayRemoveWhere(baseArray, (value, index, array) => array.indexOf(value) !== index);
+
+export const arrayMove = <T>(baseArray: T[], fromIndex: number, toIndex: number) => {
+    // this.splice(to, 0, this.splice(from, 1)[0]);
+    return arraySplice(baseArray, toIndex, 0, baseArray.slice(0).splice(fromIndex, 1)[0]);
+};
 
 export const arrayGroupBy = <T>(baseArray: T[], ...groupByPropertiesNames: string[]) => {
 
