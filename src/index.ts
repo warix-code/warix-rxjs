@@ -2,6 +2,7 @@ export * from './operators/on-subscribe';
 export { IWarixResizeObserverEntry } from './support/interfaces';
 export * from './warix.array-subject';
 export * from './warix.data-subject';
+export * from './warix.flat-state';
 export * from './warix.grid-subject';
 export * from './warix.requests-manager';
 export * from './warix.subscriptions-manager';

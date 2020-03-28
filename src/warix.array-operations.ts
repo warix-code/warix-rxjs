@@ -17,6 +17,12 @@ export interface IWarixArrayOperationChange<T> {
     shiftedItems: IWarixArrayShiftChange<T>[];
 }
 
+export interface IWarixArrayGrouping<T> {
+    groupedBy: string;
+    groupedByValue: any;
+    items: T[] | IWarixArrayGrouping<T>[];
+}
+
 const fnNoAction = <T>(baseArray: T) => {
     return {
         oldValue: baseArray,
@@ -192,3 +198,22 @@ export const arrayShuffle = <T>(baseArray: T[]): IWarixArrayOperationChange<T> =
 };
 
 export const arrayDistinct = <T>(baseArray: T[]) => arrayRemoveWhere(baseArray, (value, index, array) => array.indexOf(value) !== index);
+
+export const arrayGroupBy = <T>(baseArray: T[], ...groupByPropertiesNames: string[]) => {
+
+    const fnApplyGrouping = (ax: T[], prop: string, nextProps: string[]) => {
+        return arrayDistinct(ax.map(i => i[prop])).newValue.map(distinctValueEntry => {
+            const applicableItems = ax.filter(i => i[prop] === distinctValueEntry);
+            const ret: IWarixArrayGrouping<T> = {
+                groupedBy: prop,
+                groupedByValue: distinctValueEntry,
+                items: nextProps.length === 0 ? applicableItems : fnApplyGrouping(applicableItems, nextProps[0], nextProps.slice(1))
+            };
+            return ret;
+        });
+    };
+
+    return (baseArray || []).length === 0 || (groupByPropertiesNames || []).length === 0 ?
+        [ { groupedBy: null, groupedByValue: null, items: baseArray } ] as IWarixArrayGrouping<T>[] :
+        fnApplyGrouping(baseArray, groupByPropertiesNames[0], groupByPropertiesNames.slice(1));
+};

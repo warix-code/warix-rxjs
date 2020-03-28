@@ -1,6 +1,6 @@
 {
   "name": "warix-rxjs",
-  "version": "1.0.12",
+  "version": "1.0.18",
   "description": "Warix rxjs helpers and extensions",
   "main": "index.js",
   "scripts": {
