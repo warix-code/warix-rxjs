@@ -28,10 +28,11 @@ const fnMutateDeepSet = (data: any, path: string | string[], newValue: any) => {
     const extraction = fnExtractPathValues(data, path);
     const toModify = extraction.shift();
     for (let i = 0; i < extraction.length; i++) {
+        const root = Array.isArray(extraction[i].value) ? [] : Object.create(null);
         if (i === 0) {
-            extraction[i].value = Object.assign(extraction[i].value, { [ toModify.property ]: newValue });
+            extraction[i].value = Object.assign(root, extraction[i].value, { [ toModify.property ]: newValue });
         } else {
-            extraction[i].value = Object.assign(extraction[i].value, { [ extraction[ i - 1].property ]: extraction[i - 1].value });
+            extraction[i].value = Object.assign(root, extraction[i].value, { [ extraction[ i - 1].property ]: extraction[i - 1].value });
         }
     }
     return extraction[ extraction.length - 1 ].value;

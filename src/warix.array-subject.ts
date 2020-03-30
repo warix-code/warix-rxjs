@@ -87,6 +87,20 @@ export class WarixArraySubject<T> extends BehaviorSubject<T[]> {
         return this.pipe(map(x => x.lastIndexOf(value)), distinctUntilChanged());
     }
 
+    public findIndex(callback: (item: T, index: number, array: T[]) => boolean) {
+        return this.getValue().findIndex(callback);
+    }
+    public findIndex$(callback: (item: T, index: number, array: T[]) => boolean) {
+        return this.pipe(map(array => array.findIndex(callback)), distinctUntilChanged());
+    }
+
+    public find(callback: (item: T, index: number, array: T[]) => boolean) {
+        return this.getValue().find(callback);
+    }
+    public find$(callback: (item: T, index: number, array: T[]) => boolean) {
+        return this.pipe(map(array => array.find(callback)), distinctUntilChanged());
+    }
+
     public contains(value: T)  {
         return this.indexOf(value) > -1;
     }
@@ -116,6 +130,10 @@ export class WarixArraySubject<T> extends BehaviorSubject<T[]> {
 
     public insert(index: number, ...items: T[]) {
         return this.processArrayResult(ArrayOps.arrayInsert(this.value, index, ...items));
+    }
+
+    public moveItem(fromIndex: number, toIndex: number) {
+        return this.processArrayResult(ArrayOps.arrayMove(this.value, fromIndex, toIndex));
     }
 
     public removeAt(index: number, deleteCount = 1) {
