@@ -1,4 +1,4 @@
-import { get as xget, isNil } from 'lodash';
+import { get as xget, isNil, random, times } from 'lodash';
 import { Observable } from 'rxjs';
 import { distinctUntilChanged, pluck } from 'rxjs/operators';
 import * as ax from './warix.array-operations';
@@ -49,6 +49,13 @@ export class WarixFlatState {
 
     constructor(initial?: IKeyed) {
         this.state = new WarixDataSubject<IKeyed>(initial || Object.create(null));
+    }
+
+    /**
+     * Generates a unique string id
+     */
+    public static generateUniqueId() {
+        return times(4, i => random(0x1111, 0xFFFF).toString(16)).join('-');
     }
 
     private inArray(path: string | string[], action: (arr: any[]) => ax.IWarixArrayOperationChange<any>) {
