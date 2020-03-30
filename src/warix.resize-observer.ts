@@ -1,7 +1,6 @@
-import { Observable, Subject, fromEvent, combineLatest } from 'rxjs';
-import { filter, takeUntil, debounceTime, startWith, tap, map } from 'rxjs/operators';
+import { combineLatest, fromEvent, Observable, Subject } from 'rxjs';
+import { debounceTime, filter, map, startWith, takeUntil, tap } from 'rxjs/operators';
 import { WarixResizeObserverEntry } from './support/warix.resize-observer-entry';
-import { IWarixResizeObserverEntry } from './support/interfaces';
 
 export interface IWarixResizeObserverHandler {
     readonly source$: Observable<WarixResizeObserverEntry>;

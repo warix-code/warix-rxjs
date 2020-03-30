@@ -1,14 +1,41 @@
-import { get as xget, set as xset } from 'lodash';
-import { distinctUntilChanged, pluck } from 'rxjs/operators';
-import { WarixDataSubject } from './warix.data-subject';
-import * as ax from './warix.array-operations';
+import { get as xget, isNil } from 'lodash';
 import { Observable } from 'rxjs';
+import { distinctUntilChanged, pluck } from 'rxjs/operators';
+import * as ax from './warix.array-operations';
+import { WarixDataSubject } from './warix.data-subject';
 
 interface IKeyed {
     [ key: string ]: any;
 }
 
 const fnEnsureArray = (a: string | string[]) => Array.isArray(a) ? a : a.split('.');
+
+const fnExtractPathValues = (data: any, path: string | string[]) => {
+    const results = [];
+    fnEnsureArray(path).forEach((property, index) => {
+        if (index === 0) {
+            results.push({ property, value: data[ property ] });
+        } else {
+            results.push({
+                property,
+                value: isNil(results[ index - 1 ]) ? undefined : results[ index - 1 ].value[ property ] });
+        }
+    });
+    return [ { property: null, value: data }, ...results ].reverse();
+};
+
+const fnMutateDeepSet = (data: any, path: string | string[], newValue: any) => {
+    const extraction = fnExtractPathValues(data, path);
+    const toModify = extraction.shift();
+    for (let i = 0; i < extraction.length; i++) {
+        if (i === 0) {
+            extraction[i].value = Object.assign(extraction[i].value, { [ toModify.property ]: newValue });
+        } else {
+            extraction[i].value = Object.assign(extraction[i].value, { [ extraction[ i - 1].property ]: extraction[i - 1].value });
+        }
+    }
+    return extraction[ extraction.length - 1 ].value;
+};
 
 export class WarixFlatState {
     private readonly state: WarixDataSubject<IKeyed>;
@@ -60,7 +87,7 @@ export class WarixFlatState {
      * @param value Value to deep clone assign
      */
     public setIn(path: string | string[], value: any) {
-        this.state.next(xset(this.state.getValue(), fnEnsureArray(path), value));
+        this.state.next(fnMutateDeepSet(this.state.getValue(), path, value));
         return this;
     }
 

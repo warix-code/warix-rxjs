@@ -2,7 +2,6 @@ import { isArray, isFunction, isNumber } from 'lodash';
 import { combineLatest, Observable } from 'rxjs';
 import { distinctUntilChanged, map } from 'rxjs/operators';
 import { arrayGroupBy, arrayMultiSort, arrayPush, arrayRemove, arrayRemoveAt, arraySetAt, IWarixArrayGrouping, IWarixArraySortDefinition } from './warix.array-operations';
-import { WarixArraySubject } from './warix.array-subject';
 import { WarixDataSubject } from './warix.data-subject';
 
 interface IWarixDataSourceState<T extends { [key: string]: any }> {
