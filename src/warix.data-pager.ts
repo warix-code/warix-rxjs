@@ -1,167 +1,363 @@
 import { forkJoin, Observable, of } from 'rxjs';
-import { take, tap, distinctUntilChanged } from 'rxjs/operators';
-import { WarixDataSubject } from './warix.data-subject';
+import { distinctUntilChanged, take, tap } from 'rxjs/operators';
 import { WarixDataMap } from './warix.data-map';
+import { WarixDataSubject } from './warix.data-subject';
 
-export type WarixDataPagerPageCallback<T = any> = (minIndex: number, maxIndex: number) => Observable<T[]>;
+export type WarixDataPagerCallback<T = any> = (minIndex: number, maxIndex: number) => Observable<T[]>;
 
 interface IWarixDataPagerPage<T = any> {
-    index: number;
+    pageIndex: number;
+    startIndex: number;
     data: T[];
 }
 
-interface IWarixDataPagerState<T> {
-    loading: number;
+interface IWarixDataPagerState<T = any> {
+    loadingCount: number;
+    eofIndex: number;
+    eofPage: number;
+    minIndex: number;
+    minPageIndex: number;
+    maxPageIndex: number;
+    maxIndex: number;
+    lastRequestMinIndex: number;
+    lastRequestMaxIndex: number;
     data: T[];
-    eof: number;
 }
 
 export class WarixDataPager<T = any> {
-    private readonly pages: IWarixDataPagerPage[] = [];
     private readonly state$: WarixDataSubject<IWarixDataPagerState<T>>;
-    private readonly dataMap: WarixDataMap;
+    private readonly stateMap: WarixDataMap;
+    private readonly pages: IWarixDataPagerPage<T>[] = [];
 
-    private get loadingCount() {
-        return this.state$.peekKey('loading');
-    }
-
-    private get eof() {
-        return this.state$.peekKey('eof');
-    }
-
-    public get loading() {
-        return this.state$.peekKey('loading') > 0;
-    }
-    public get loading$() {
-        return this.dataMap.get<boolean>('loading');
-    }
-
-    public get eofReached() {
-        return this.eof !== null;
-    }
-    public get eofReached$() {
-        return this.dataMap.get<boolean>('eofReached');
-    }
-
+    /**
+     * Gets the data that represents the last request issued on the pager
+     */
     public get data() {
         return this.state$.peekKey('data');
     }
+    /**
+     * Gets an observable of the data that represents the last request issued on the pager
+     */
     public get data$() {
-        return this.dataMap.get<T[]>('data');
+        return this.stateMap.get<T[]>('data');
     }
 
-    constructor(private readonly pageSize: number, private readonly pageCallback: WarixDataPagerPageCallback<T>) {
-        this.state$ = new WarixDataSubject<IWarixDataPagerState<T>>({ loading: 0, data: null, eof: null });
-        this.dataMap = new WarixDataMap();
-
-        this.dataMap.set('loading', this.state$.map('loading', x => x > 0).pipe(distinctUntilChanged()));
-        this.dataMap.set('eofReached', this.state$.map('eof', x => x !== null).pipe(distinctUntilChanged()));
-        this.dataMap.set('data', this.state$.get('data'));
+    /**
+     * Gets the last index the pager could retrieve when a request returned less than the pageSize of the pager
+     */
+    public get eofIndex() {
+        return this.state$.peekKey('eofIndex');
+    }
+    /**
+     * Gets an observable of the last index the pager could retrieve when a request returned less than the pageSize of the pager
+     */
+    public get eofIndex$() {
+        return this.stateMap.get<number>('eofIndex');
     }
 
-    public static fromArray<M>(arraySource: M[], pageSize: number) {
-        return new WarixDataPager(pageSize, (minIndex, maxIndex) => of(arraySource.slice(minIndex, maxIndex)));
+    /**
+     * Gets the last page index the pager could retrieve when a request returned less than the pageSize of the pager
+     */
+    public get eofPage() {
+        return this.state$.peekKey('eofPage');
+    }
+    /**
+     * Gets an observable to the last page index the pager could retrieve when a request returned less than the pageSize of the pager
+     */
+    public get eofPage$() {
+        return this.stateMap.get<number>('eofPage');
+    }
+
+    /**
+     * Gets true when the pager issues a request that return a data set with less records than the pageSize
+     */
+    public get eof() {
+        return this.state$.peekKey('eofIndex') !== null;
+    }
+    /**
+     * Gets an observable that determines when the pager issues a request that return a data set with less records than the pageSize
+     */
+    public get eof$() {
+        return this.stateMap.get<boolean>('eof');
+    }
+
+    /**
+     * Gets the last maximum index requested to the pager
+     */
+    public get lastRequestMaxIndex() {
+        return this.state$.peekKey('lastRequestMaxIndex');
+    }
+    /**
+     * Gets an observable to the last maximum index requested to the pager
+     */
+    public get lastRequestMaxIndex$() {
+        return this.stateMap.get<number>('lastRequestMaxIndex');
+    }
+
+    /**
+     * Gets the last minimum index requested to the pager
+     */
+    public get lastRequestMinIndex() {
+        return this.state$.peekKey('lastRequestMinIndex');
+    }
+    /**
+     * Gets an observable to the last minimum index requested to the pager
+     */
+    public get lastRequestMinIndex$() {
+        return this.stateMap.get<number>('lastRequestMinIndex');
+    }
+
+    /**
+     * Gets true if the pager is waiting for data callback to complete
+     */
+    public get isLoading() {
+        return this.state$.peekKey('loadingCount') > 0;
+    }
+    /**
+     * Gets an observable that determines if pager is waiting for data callback to complete
+     */
+    public get isLoading$() {
+        return this.stateMap.get<T[]>('isLoading');
+    }
+
+    /**
+     * Gets the maximum record that exist in the pager data. (Might not be the eofIndex)
+     */
+    public get maxIndex() {
+        return this.state$.peekKey('maxIndex');
+    }
+    /**
+     * Gets an observable to the maximum record that exist in the pager data. (Might not be the eofIndex)
+     */
+    public get maxIndex$() {
+        return this.stateMap.get<number>('maxIndex');
+    }
+
+    /**
+     * Gets the minimum record that exist in the pager data. (Might not be the sofIndex)
+     */
+    public get minIndex() {
+        return this.state$.peekKey('minIndex');
+    }
+    /**
+     * Gets an oservable to the minimum record that exist in the pager data. (Might not be the sofIndex)
+     */
+    public get minIndex$() {
+        return this.stateMap.get<number>('minIndex');
+    }
+
+    /**
+     * Gets the maximum pageIndex that exist in the pager data. (Might not be the eofPageIndex)
+     */
+    public get maxPageIndex() {
+        return this.state$.peekKey('maxPageIndex');
+    }
+    /**
+     * Gets an observable to the maximum pageIndex that exist in the pager data. (Might not be the eofPageIndex)
+     */
+    public get maxPageIndex$() {
+        return this.stateMap.get<number>('maxPageIndex');
+    }
+
+    /**
+     * Gets the minimum pageIndex that exist in the pager data. (Might not be the sofPageIndex)
+     */
+    public get minPageIndex() {
+        return this.state$.peekKey('minPageIndex');
+    }
+    /**
+     * Gets an observable to the minimum pageIndex that exist in the pager data. (Might not be the sofPageIndex)
+     */
+    public get minPageIndex$() {
+        return this.stateMap.get<number>('minPageIndex');
+    }
+
+    /**
+     * Creates a new WarixDataPager
+     * @param pageSize Page size per page request
+     * @param callback Callback to retrieve information
+     */
+    constructor(public readonly pageSize: number, public readonly callback: WarixDataPagerCallback<T>) {
+        this.state$ = new WarixDataSubject<IWarixDataPagerState<T>>({
+            data: [],
+            eofIndex: null,
+            eofPage: null,
+            lastRequestMaxIndex: null,
+            lastRequestMinIndex: null,
+            loadingCount: 0,
+            maxIndex: null,
+            maxPageIndex: null,
+            minIndex: null,
+            minPageIndex: null
+        });
+        this.stateMap = new WarixDataMap().liftFromDataSubject(this.state$);
+        this.stateMap.set('isLoading', this.state$.map('loadingCount', x => x > 0).pipe(distinctUntilChanged()));
+        this.stateMap.set('eof', this.state$.map('eofIndex', x => x !== null).pipe(distinctUntilChanged()));
     }
 
     private indexToPage(index: number) {
         return Math.floor(index / this.pageSize);
     }
 
-    private createRequestObservable(pageIndex: number) {
-        if (this.eof !== null) {
-            if (this.eof <= pageIndex) {
-                return of([]);
-            } else {
-                return this.pageCallback(pageIndex * this.pageSize, (pageIndex + 1) * this.pageSize)
-                    .pipe(
-                        take(1),
-                        tap(result => {
-                            if (result.length < this.pageSize) {
-                                this.state$.set('eof', pageIndex);
-                            }
-                            this.pages.push({ data: result, index: pageIndex });
-                        })
-                    );
-            }
+    private determineRanges() {
+        const pageIndexs = this.pages.map(x => x.pageIndex);
+        const minPageIndex = Math.min(...pageIndexs);
+        const maxPageIndex = Math.max(...pageIndexs);
+        return {
+            minIndex: minPageIndex * this.pageSize,
+            maxIndex: (maxPageIndex * this.pageSize) + (this.pages.find(pg => pg.pageIndex === maxPageIndex).data.length),
+            minPageIndex,
+            maxPageIndex,
+        };
+    }
+
+    private updateStateForPageRequest(pageIndex: number, dataLength: number) {
+        const eofPage = this.state$.peekKey('eofPage');
+        const eofIndex = this.state$.peekKey('eofIndex');
+        const minPage = this.state$.peekKey('minPageIndex');
+        const maxPage = this.state$.peekKey('maxPageIndex');
+        const ranges = this.determineRanges();
+        this.state$.patch({
+            eofPage: eofPage !== null ? eofPage : dataLength < this.pageSize ? Math.min(pageIndex, eofPage) : eofPage,
+            eofIndex: eofIndex !== null ? eofIndex : dataLength < this.pageSize ? Math.min(eofIndex, ranges.maxIndex) : eofIndex,
+            minPageIndex: ranges.minPageIndex,
+            maxPageIndex: ranges.maxPageIndex,
+            minIndex: ranges.minIndex,
+            maxIndex: ranges.maxIndex,
+            loadingCount: this.state$.peekKey('loadingCount') - 1
+        });
+    }
+
+    /**
+     * Determine if the page is allowed to be requested with respect of the detected EOF if any
+     * @param pageIndex Requested page index
+     */
+    private allowPageRequest(pageIndex: number) {
+        const currentEOFPage = this.state$.peekKey('eofPage');
+        return currentEOFPage === null ? true : pageIndex < currentEOFPage;
+    }
+
+    /**
+     * Obtains a single page from the pages buffer or from a new callback request and updates the underlying state accordingly
+     * @param pageIndex Page requested
+     */
+    private getPage(pageIndex: number) {
+        if (!this.allowPageRequest(pageIndex)) {
+            return of([]);
         }
-        return this.pageCallback(pageIndex * this.pageSize, (pageIndex + 1) * this.pageSize)
+        const page = this.pages.find(pg => pg.pageIndex === pageIndex);
+        if (page) {
+            return of(page.data);
+        } else {
+            this.state$.set('loadingCount', this.state$.peekKey('loadingCount') + 1);
+            return this.callback(pageIndex * this.pageSize, (pageIndex + 1) * this.pageSize)
             .pipe(
                 take(1),
-                tap(result => {
-                    if (result.length < this.pageSize) {
-                        this.state$.set('eof', pageIndex);
-                    }
-                    this.pages.push({ data: result, index: pageIndex });
+                tap(dataResults => {
+                    const dr = dataResults || [];
+                    this.pages.push({ data: dr, pageIndex, startIndex: pageIndex * this.pageSize });
+                    this.updateStateForPageRequest(pageIndex, dr.length);
                 })
             );
-    }
-
-    private requestPage(pageIndex: number, minIndex: number, maxIndex: number) {
-        const sliceStart = minIndex - (pageIndex * this.pageSize);
-        const sliceEnd = maxIndex - (pageIndex * this.pageSize);
-        const dataPage = this.pages.find(pg => pg.index === pageIndex);
-        if (dataPage) {
-            this.state$.patch({ data: dataPage.data.slice(sliceStart, sliceEnd) });
-        } else {
-            this.state$.set('loading', this.loadingCount + 1);
-            this.createRequestObservable(pageIndex)
-                .subscribe(x => {
-                    this.state$.patch({
-                        loading: this.loadingCount - 1,
-                        data: dataPage.data.slice(sliceStart, sliceEnd)
-                    });
-                });
         }
     }
 
-    private requestMultiPage(minPageIndex: number, maxPageIndex: number, minIndex: number, maxIndex: number) {
-        const foundMin = this.pages.find(pg => pg.index === minPageIndex);
-        const foundMax = this.pages.find(pg => pg.index === maxPageIndex);
-
-        if (foundMin && foundMax) {
-            this.state$.patch({
-                data: [
-                    ...foundMin.data.slice(minIndex - (this.pageSize * minPageIndex)),
-                    ...foundMax.data.slice(0, maxIndex - (this.pageSize * maxPageIndex))
-                ]
-            });
-        } else {
-            this.state$.set('loading', this.loadingCount + 1);
-            forkJoin([
-                foundMin ? of(foundMin.data) : this.createRequestObservable(minPageIndex),
-                foundMax ? of(foundMax.data) : this.createRequestObservable(maxPageIndex)
-            ]).subscribe((values: [T[], T[]]) => {
-                this.state$.patch({
-                    loading: this.loadingCount - 1,
-                    data: [
-                        ...values[0].slice(minIndex - (this.pageSize * minPageIndex)),
-                        ...values[1].slice(0, maxIndex - (this.pageSize * maxPageIndex))
-                    ]
-                });
-            });
-        }
+    private pageDataSlice(data: T[], minIndex: number, maxIndex: number, pageIndex: number) {
+        return data.slice(
+            minIndex - (pageIndex * this.pageSize),
+            maxIndex - (pageIndex * this.pageSize)
+        );
     }
 
+    private multiPageDataSlice(dataArrays: T[][], minIndex: number, maxIndex: number, minPageIndex: number, maxPageIndex: number) {
+        const first = dataArrays[0];
+        const last = dataArrays[ dataArrays.length - 1];
+        const middle: T[] = [];
+        for (let i = 1; i < dataArrays.length - 1; i++) {
+            middle.push(...dataArrays[i]);
+        }
+        return [
+            ...first.slice(minIndex - (minPageIndex * this.pageSize)),
+            ...middle,
+            ...last.slice(0, maxIndex - (maxPageIndex * this.pageSize))
+        ];
+    }
+
+    /**
+     * Completes the underlying observable state and mappings
+     */
     public complete() {
         this.pages.length = 0;
-        this.dataMap.complete();
+        this.stateMap.complete();
         this.state$.complete();
     }
 
+    /**
+     * Request a record set delimeted by its range indexs
+     * @param minIndex Min record index
+     * @param maxIndex Max record index
+     */
     public request(minIndex: number, maxIndex: number) {
-        const minPageIndex = this.indexToPage(minIndex);
-        const maxPageIndex = this.indexToPage(maxIndex);
+        const minPageIndex = this.indexToPage(Math.min(minIndex, maxIndex));
+        const maxPageIndex = this.indexToPage(Math.max(maxIndex, minIndex));
+
         if (minPageIndex === maxPageIndex) {
-            this.requestPage(minPageIndex, minIndex, maxIndex);
+            this.getPage(minPageIndex).subscribe(x => {
+                this.state$.patch({
+                    data: this.pageDataSlice(x, minIndex, maxIndex, minPageIndex),
+                    lastRequestMaxIndex: maxIndex,
+                    lastRequestMinIndex: minIndex
+                });
+            });
         } else {
-            this.requestMultiPage(minPageIndex, maxPageIndex, minIndex, maxIndex);
+            const pagesRequests: Observable<T[]>[] = [];
+            for (let i = minPageIndex; i <= maxPageIndex; i++) {
+                pagesRequests.push(this.getPage(i));
+            }
+            forkJoin(pagesRequests).subscribe((values) => {
+                this.state$.patch({
+                    data: this.multiPageDataSlice(values, minIndex, maxIndex, minPageIndex, maxPageIndex),
+                    lastRequestMaxIndex: maxIndex,
+                    lastRequestMinIndex: minIndex
+                });
+            });
         }
         return this;
     }
 
+    /**
+     * Requests a single record
+     * @param recordIndex Record index
+     */
+    public requestRecord(recordIndex: number) {
+        return this.request(recordIndex, recordIndex);
+    }
+
+    /**
+     * Requests a record set delimited by the range than encompass the given page
+     * @param pageIndex Index of the page
+     */
+    public requestPage(pageIndex: number) {
+        return this.request(pageIndex * this.pageSize, (pageIndex + 1) * this.pageSize);
+    }
+
+    /**
+     * Resets the pager to its initial state
+     */
     public reset() {
         this.pages.length = 0;
-        this.state$.patch({ data: [], eof: null });
+        this.state$.next({
+            data: [],
+            eofIndex: null,
+            eofPage: null,
+            lastRequestMaxIndex: null,
+            lastRequestMinIndex: null,
+            loadingCount: 0,
+            maxIndex: null,
+            maxPageIndex: null,
+            minIndex: null,
+            minPageIndex: null
+        });
         return this;
     }
 }

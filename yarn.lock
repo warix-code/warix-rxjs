@@ -24,10 +24,10 @@ tslib@^1.9.0:
   resolved "https://registry.yarnpkg.com/tslib/-/tslib-1.10.0.tgz#c3c19f95973fb0a62973fb09d90d961ee43e5c8a"
   integrity sha512-qOebF53frne81cf0S9B41ByenJ3/IuH8yJKngAX35CmiZySA0khhkovshKK+jGCaMnVomla7gVlIcc3EvKPbTQ==
 
-warix-core@^1.0.1:
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/warix-core/-/warix-core-1.0.1.tgz#61eba01b46f2846e9e2f234d580a3d8cca8c3aa4"
-  integrity sha512-zBD+aVqiQjP/C/G7OBpzL7BAolOMHP51wmT0tUq/ZfHC7dh4dVBlNLTzLO9HyKeuPMt6nuIWAO5vQKLbN1P53g==
+warix-core@^1.0.2:
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/warix-core/-/warix-core-1.0.2.tgz#41210f849347ba53e8668d68b74ed9ba8e373229"
+  integrity sha512-iWcYuaaNwxuD8sGBW2Fo/idWL9PhXOBqCuyleUi3pIffcLIgZn0HbEBeLHR2YcjgvEmxdxVkg5wNPF6nMM1vMA==
   dependencies:
     "@types/lodash" "^4.14.149"
     lodash "^4.17.15"
