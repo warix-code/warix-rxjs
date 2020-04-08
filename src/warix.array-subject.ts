@@ -1,6 +1,6 @@
 import { BehaviorSubject, Subject } from 'rxjs';
 import { distinctUntilChanged, map } from 'rxjs/operators';
-import * as ArrayOps from './warix.array-operations';
+import * as ArrayOps from 'warix-core/warix.array-operations';
 
 export class WarixArraySubject<T> extends BehaviorSubject<T[]> {
     private readonly actionDetails$ = new Subject<ArrayOps.IWarixArrayOperationChange<T>>();

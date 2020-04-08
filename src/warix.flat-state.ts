@@ -1,7 +1,7 @@
 import { get as xget, isNil, random, times } from 'lodash';
 import { Observable } from 'rxjs';
 import { distinctUntilChanged, pluck } from 'rxjs/operators';
-import * as ax from './warix.array-operations';
+import * as ax from 'warix-core/warix.array-operations';
 import { WarixDataSubject } from './warix.data-subject';
 
 interface IKeyed {

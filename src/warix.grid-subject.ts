@@ -1,6 +1,6 @@
 import { BehaviorSubject, Observable } from 'rxjs';
 import { distinctUntilChanged, map } from 'rxjs/operators';
-import { arraySetAt } from './warix.array-operations';
+import { arraySetAt } from 'warix-core';
 import { WarixDataSubject } from './warix.data-subject';
 
 export type WarixGridSubjectActivator<T> = (column: number, row: number, index: number) => T;
