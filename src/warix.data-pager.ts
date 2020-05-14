@@ -195,20 +195,38 @@ export class WarixDataPager<T = any> {
         this.stateMap.set('eof', this.state$.map('eofIndex', x => x !== null).pipe(distinctUntilChanged()));
     }
 
+    /**
+     * Creates a new WarixDataPager from a static array source
+     * @param pageSize Page size per page request
+     * @param arraySource Static data source
+     */
+    public static fromArray<M = any>(pageSize: number, arraySource: M[]) {
+        return new WarixDataPager(pageSize, (min: number, max: number) => of(arraySource.slice(min, max)));
+    }
+
     private indexToPage(index: number) {
         return Math.floor(index / this.pageSize);
     }
 
     private determineRanges() {
-        const pageIndexs = this.pages.map(x => x.pageIndex);
-        const minPageIndex = Math.min(...pageIndexs);
-        const maxPageIndex = Math.max(...pageIndexs);
-        return {
-            minIndex: minPageIndex * this.pageSize,
-            maxIndex: (maxPageIndex * this.pageSize) + (this.pages.find(pg => pg.pageIndex === maxPageIndex).data.length),
-            minPageIndex,
-            maxPageIndex,
-        };
+        if (this.pages.length > 0) {
+            const pageIndexs = this.pages.map(x => x.pageIndex);
+            const minPageIndex = Math.min(...pageIndexs);
+            const maxPageIndex = Math.max(...pageIndexs);
+            return {
+                minIndex: minPageIndex * this.pageSize,
+                maxIndex: (maxPageIndex * this.pageSize) + (this.pages.find(pg => pg.pageIndex === maxPageIndex).data.length),
+                minPageIndex,
+                maxPageIndex,
+            };
+        } else {
+            return {
+                minIndex: 0,
+                maxIndex: 0,
+                minPageIndex: 0,
+                maxPageIndex: 0
+            };
+        }
     }
 
     private updateStateForPageRequest(pageIndex: number, dataLength: number) {
@@ -217,9 +235,18 @@ export class WarixDataPager<T = any> {
         const minPage = this.state$.peekKey('minPageIndex');
         const maxPage = this.state$.peekKey('maxPageIndex');
         const ranges = this.determineRanges();
+
+        let nextEOFPage = null;
+        let nextEOFIndex = null;
+
+        if (dataLength < this.pageSize) {
+            nextEOFPage = ranges.maxPageIndex;
+            nextEOFIndex = ranges.maxIndex;
+        }
+
         this.state$.patch({
-            eofPage: eofPage !== null ? eofPage : dataLength < this.pageSize ? Math.min(pageIndex, eofPage) : eofPage,
-            eofIndex: eofIndex !== null ? eofIndex : dataLength < this.pageSize ? Math.min(eofIndex, ranges.maxIndex) : eofIndex,
+            eofPage: nextEOFPage,
+            eofIndex: nextEOFIndex,
             minPageIndex: ranges.minPageIndex,
             maxPageIndex: ranges.maxPageIndex,
             minIndex: ranges.minIndex,
@@ -234,7 +261,7 @@ export class WarixDataPager<T = any> {
      */
     private allowPageRequest(pageIndex: number) {
         const currentEOFPage = this.state$.peekKey('eofPage');
-        return currentEOFPage === null ? true : pageIndex < currentEOFPage;
+        return currentEOFPage === null ? true : pageIndex <= currentEOFPage;
     }
 
     /**
@@ -255,7 +282,9 @@ export class WarixDataPager<T = any> {
                 take(1),
                 tap(dataResults => {
                     const dr = dataResults || [];
-                    this.pages.push({ data: dr, pageIndex, startIndex: pageIndex * this.pageSize });
+                    if (dr.length > 0) {
+                        this.pages.push({ data: dr, pageIndex, startIndex: pageIndex * this.pageSize });
+                    }
                     this.updateStateForPageRequest(pageIndex, dr.length);
                 })
             );

@@ -168,6 +168,10 @@ export class WarixArraySubject<T> extends BehaviorSubject<T[]> {
         return this.processArrayResult(ArrayOps.arrayDistinct(this.value));
     }
 
+    public filter(callbackFn: (a: T, index: number, array: T[]) => boolean) {
+        return this.pipe(map(array => array.filter(callbackFn)), distinctUntilChanged());
+    }
+
     public sort(callbackFn?: (a: T, b: T) => number) {
         return this.processArrayResult(ArrayOps.arraySort(this.value, callbackFn));
     }
